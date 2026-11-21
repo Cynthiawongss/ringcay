@@ -1,0 +1,8 @@
+.DS_Store
+__pycache__/
+*.pyc
+
+# The original handoff notes and chat transcript stay on this computer.
+# Delete these two lines to put them in the repository too.
+claude-handoff-*/
+*交付包*.zip
