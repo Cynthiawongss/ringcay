@@ -3,7 +3,7 @@
 // To add a language: copy zh.js, translate the right-hand sides, and add it to PACKS and LANGS below.
 import { ZH } from './zh.js';
 
-const KEY = 'little-atoll.lang';
+const KEY = 'ringcay.lang';
 const PACKS = { zh: ZH };
 export const LANGS = [
   { id: 'en', label: 'EN', name: 'English', html: 'en', locale: 'en-US' },

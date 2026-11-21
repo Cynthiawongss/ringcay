@@ -1,25 +1,24 @@
 // Saving, photos, and the public snapshot.
 // PROTOTYPE: everything lives in this browser (localStorage + IndexedDB). There is no server and no account.
-import { MOTIFS, PIECES, byId, productFor } from './catalog.js';
-import { ZONES } from './world.js';
+import { productFor, ringOf } from './catalog.js';
 import { t } from './i18n.js';
 
-const KEY = 'little-atoll.v1';
+const KEY = 'ringcay.v2';
 
 export const uid = () => Math.random().toString(36).slice(2, 9);
 
 export function fresh() {
   return {
-    v: 1, step: 'ring', grown: false, title: '', people: '',
-    ring: { style: 'classic', metal: 'gold', finish: 'polished', stone: 'none', motif: 'star', text: '', note: '', notePhoto: null },
-    scene: 'day', items: [], share: { names: true, engraving: true }, owned: [], touched: false,
+    v: 2, step: 'ring', grown: false, title: '', people: '',
+    ring: { id: 'charm', metal: null, accent: null, text: '', note: '', notePhoto: null },   // metal / accent null = the ring's own
+    items: [], share: { names: true, engraving: true }, owned: [], touched: false,
   };
 }
 
 export function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
-    return s && s.v === 1 ? { ...fresh(), ...s } : null;
+    return s && s.v === 2 ? { ...fresh(), ...s } : null;
   } catch { return null; }
 }
 
@@ -36,7 +35,7 @@ let dbp = null;
 function db() {
   if (!dbp) dbp = new Promise((res) => {
     try {
-      const rq = indexedDB.open('little-atoll', 1);
+      const rq = indexedDB.open('ringcay', 1);
       rq.onupgradeneeded = () => rq.result.createObjectStore('photos');
       rq.onsuccess = () => res(rq.result);
       rq.onerror = () => res(null);
@@ -73,41 +72,41 @@ export function shrink(src, max = 1400, q = 0.85) {
 }
 export const readFile = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(file); });
 
-// ---------- ring -> island continuity ----------
+// ---------- ring -> island ----------
+// A piece stands on surface `s` of the island (see world.js) at x, z.
 export function newItem(type, spot, extra = {}) {
-  return { id: 'i' + uid(), type, a: spot.a, r: spot.r, rot: 0, label: '', memory: null, ...extra };
+  return { id: 'i' + uid(), type, s: spot.s || 0, x: spot.x, z: spot.z, rot: 0, label: '', memory: null, ...extra };
 }
 
-// First time the ring grows: the engraved symbol becomes a landmark, the engraved words become a signpost.
+// First time the ring grows, the island is not empty: a house, something green, a light.
+// What you wrote about the ring becomes the first memory, inside the house.
+const STARTERS = {
+  float: [['house', 0, -0.3, -0.45, 0.5], ['tree', 0, 0.62, -0.35], ['cypress', 0, -0.85, -0.05], ['bush', 0, 0.3, 0.62], ['lamp', 0, -0.35, 0.55]],
+  stone: [['house', 0, -0.25, -0.4, 0.5], ['tree', 0, 0.58, -0.3], ['cypress', 0, -0.78, 0.0], ['bush', 0, 0.3, 0.55], ['lamp', 0, -0.3, 0.5]],
+  table: [['house', 0, -0.5, -0.1, 0.25], ['tree', 0, 0.35, -0.12], ['cypress', 0, -0.9, 0.1], ['bush', 0, 0.75, 0.25], ['lamp', 0, 0.05, 0.32]],
+  twin: [['house', 0, -0.1, -0.2, 0.6], ['tree', 0, 0.4, 0.25], ['cabin', 1, 0.1, -0.2, -0.6], ['cypress', 1, -0.4, 0.25], ['lamp', 1, 0.35, 0.4]],
+};
 export function seedIsland(state) {
   if (state.items.length) return;
-  const m = byId(MOTIFS, state.ring.motif), zone = byId(PIECES, m.grows).zone;
-  const land = newItem(m.grows, { a: Math.PI / 2 + 0.72, r: zone === 'shore' ? ZONES.shore[0] : 2.55 }, { from: 'motif' });
-  if (state.ring.note.trim() || state.ring.notePhoto) {
-    land.memory = { title: t('why this ring'), date: '', story: state.ring.note.trim(), photo: state.ring.notePhoto, public: false };
-  }
-  state.items.push(land);
-  if (state.ring.text.trim()) state.items.push(newItem('signpost', { a: Math.PI / 2 - 0.42, r: 2.9 }, { from: 'text' }));
-  state.items.push(newItem('oak', { a: Math.PI / 2 + 2.3, r: 2.5 }), newItem('pine', { a: -0.85, r: 2.75 }), newItem('flowers', { a: Math.PI / 2 - 1.35, r: 2.35 }));
+  STARTERS[ringOf(state.ring.id).form].forEach(([type, s, x, z, rot = 0], n) => {
+    const it = newItem(type, { s, x, z }, { rot });
+    if (!n && (state.ring.note.trim() || state.ring.notePhoto)) { it.from = 'ring'; it.memory = { title: t('why this ring'), date: '', story: state.ring.note.trim(), photo: state.ring.notePhoto, public: false }; }
+    state.items.push(it);
+  });
 }
-
-// Changing the symbol later swaps the landmark it grew, and keeps the memory inside it.
-export function followRing(state) {
-  const m = byId(MOTIFS, state.ring.motif);
-  const it = state.items.find((i) => i.from === 'motif');
-  if (it && it.type !== m.grows) {
-    it.type = m.grows;
-    const [r0, r1] = ZONES[byId(PIECES, m.grows).zone];
-    it.r = Math.min(r1, Math.max(r0, r0 === r1 ? r0 : 2.55));
-  }
+// A different ring can mean a different island shape. Pieces keep their memories and are set down again in a tidy ring.
+export function refit(state, formBefore) {
+  const form = ringOf(state.ring.id).form;
+  if (form === formBefore || !state.items.length) return;
+  const two = form === 'twin', n = state.items.length;
+  state.items.forEach((it, i) => { const a = (i / n) * Math.PI * 2 + 0.6, r = form === 'table' ? 0.34 : two ? 0.42 : 0.72; it.s = two ? i % 2 : 0; it.x = Math.cos(a) * r * (form === 'table' ? 2.2 : 1); it.z = Math.sin(a) * r; });
 }
 
 // ---------- what you are trying but do not own ----------
 export function trials(state) {
   const out = new Map();
   const add = (p) => { if (p && !state.owned.includes(p.sku)) out.set(p.sku, p); };
-  add(productFor('ring', state.ring.style));
-  add(productFor('scene', state.scene));
+  add(productFor('ring', state.ring.id));
   state.items.forEach((i) => add(productFor('piece', i.type)));
   return [...out.values()];
 }
@@ -119,7 +118,7 @@ export const owns = (state, product) => !product || state.owned.includes(product
 export async function snapshot(state) {
   const items = [];
   for (const i of state.items) {
-    const out = { id: i.id, type: i.type, a: +i.a.toFixed(3), r: +i.r.toFixed(3), rot: +(i.rot || 0).toFixed(3) };
+    const out = { id: i.id, type: i.type, s: i.s || 0, x: +i.x.toFixed(3), z: +i.z.toFixed(3), rot: +(i.rot || 0).toFixed(3) };
     const m = i.memory;
     if (m && m.public && (m.title || m.story || m.photo)) {
       out.label = i.label || '';
@@ -131,9 +130,9 @@ export async function snapshot(state) {
   }
   const r = state.ring;
   return {
-    v: 1, title: state.title || '', people: state.share.names ? state.people || '' : '',
-    ring: { style: r.style, metal: r.metal, finish: r.finish, stone: r.stone, motif: r.motif, text: state.share.engraving ? r.text : '' },
-    scene: state.scene, items,
+    v: 2, title: state.title || '', people: state.share.names ? state.people || '' : '',
+    ring: { id: r.id, metal: r.metal, accent: r.accent, text: state.share.engraving ? r.text : '' },
+    items,
   };
 }
 
@@ -154,6 +153,6 @@ export async function decode(str) {
   const bytes = b64.from(str.slice(1));
   const raw = str[0] === 'z' ? await pipe(bytes, new DecompressionStream('deflate-raw')) : bytes;
   const snap = JSON.parse(new TextDecoder().decode(raw));
-  if (!snap || snap.v !== 1 || !snap.ring || !Array.isArray(snap.items)) throw new Error('bad link');
+  if (!snap || snap.v !== 2 || !snap.ring || !Array.isArray(snap.items)) throw new Error('bad link');
   return snap;
 }

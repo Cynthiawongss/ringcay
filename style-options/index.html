@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ringcay style options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;1,6..96,500&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Hanken+Grotesk:wght@300;400;600&family=Instrument+Serif:ital@0;1&family=Nanum+Pen+Script&family=Noto+Sans+SC:wght@300;500;900&family=Noto+Serif+SC:wght@500;700&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; padding: 24px; background: #1c1b1a; color: #eee; font: 15px/1.5 system-ui, sans-serif; }
+  #boards { display: grid; gap: 28px; max-width: 1600px; margin: 0 auto; }
+  #boards img { width: 100%; display: block; border-radius: 6px; }
+  #status { max-width: 1600px; margin: 0 auto 16px; opacity: .7; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<p id="status">rendering…</p>
+<div id="boards"></div>
+<script type="module" src="lab.js"></script>
+</body>
+</html>
