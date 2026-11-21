@@ -6,6 +6,10 @@ A ring that grows into a place. Pick a ring, watch it grow a tiny 3D island, and
 
 This is a working prototype, not a launched product.
 
+**Not open source.** This repository is public so you can look at the work. All rights are reserved: please do not copy, modify or reuse the code, the designs or the images without permission. See [LICENSE](LICENSE).
+
+**不是开源项目。** 公开是为了展示作品，保留所有权利：未经许可请勿复制、修改或使用这里的代码、设计和图片。详见 [LICENSE](LICENSE)。
+
 ## Run it
 
 You need Python 3 and a current browser. Nothing to install.
